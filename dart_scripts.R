@@ -578,3 +578,19 @@ count.all_na <- function(x){
     sum()
   
 }
+
+# calcular maf/frecuencia de genotipo menor en SilicoDArTs
+maf.silicos <- function(x){
+  if(class(x) != "genlight" ) stop('Object not genlight class')
+  
+  x %>% as.matrix() %>% 
+    colMeans(na.rm = TRUE) %>% 
+    enframe('Loc.ID', 'maf') %>% 
+    mutate(maf = if_else(maf <= 0.5, maf, 1 - maf))
+  
+}
+
+
+
+
+          
