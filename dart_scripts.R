@@ -590,6 +590,33 @@ maf.silicos <- function(x){
   
 }
 
+# calcular mac/conteo de genotipo menor en SilicoDArTs
+calc.mac.gl.silico <- function(x) {
+  
+  if (!class(x) %in% c('genlight', 'dartR')) {stop('only objects of class genlight or dartR valid as input')}
+  
+  x <- gl.recalc.metrics(x, verbose = 1)
+  
+  # A = CallRate x N.individuos
+  # B = A * OneRatio ## 
+  # C = A * (OneRatio - 1) 
+  
+  A <- round(x$other$loc.metrics$CallRate * nInd(x), digits = 0)
+  B <- round(A * x$other$loc.metrics$OneRatio, digits = 0)
+  C <- round(A * (1 - x$other$loc.metrics$OneRatio), digits = 0)
+  D <- C + B
+
+  # all(A == D)
+    
+    # Hallar el conteo alelico menor por marcador
+  MinorAlleleCount <- pmin(B, C)
+  
+  x$other$loc.metrics$MinorAlleleCount <- MinorAlleleCount
+  
+  return(x)
+
+}
+
 
 
 
