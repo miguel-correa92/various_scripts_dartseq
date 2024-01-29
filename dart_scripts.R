@@ -590,6 +590,37 @@ maf.silicos <- function(x){
   
 }
 
+count.monomorphs.silico <- function(x){
+  require(magrittr)
+  if(!class(x) %in% c("genlight", 'dartR') ) stop('Object not genlight or dartR class')
+  
+  #Check columns (i.e markers) if all values are equal.
+  x %>% as.matrix() %>% 
+    apply(., 2, function(x) all(x == 1, na.rm = TRUE) | all(x == 0, na.rm = TRUE)) %>% 
+    sum()
+  
+}
+
+summary.stats.gl.silico <- function(x) {
+  if(class(x) != "genlight" ) stop('Object not genlight class')
+  
+  
+  n.samples <- nInd(x)
+  n.populations <- nPop(x)
+  n.mks <- nLoc(x)
+  n.monomorph <- count.monomorphs.silico(x)
+  n.all_na <- count.all_na(x)
+  
+  df <- tibble(n.samples = n.samples, 
+               n.populations = n.populations, 
+               n.mks = n.mks, 
+               n.monomorphic.loci = n.monomorph, 
+               n.polymorphic = n.mks - n.monomorph, 
+               n.loci.all.NA = n.all_na)
+  return(df)
+}
+
+          
 # calcular mac/conteo de genotipo menor en SilicoDArTs
 calc.mac.gl.silico <- function(x) {
   
