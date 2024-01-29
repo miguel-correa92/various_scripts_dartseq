@@ -601,6 +601,7 @@ count.monomorphs.silico <- function(x){
   
 }
 
+
 summary.stats.gl.silico <- function(x) {
   if(class(x) != "genlight" ) stop('Object not genlight class')
   
@@ -611,12 +612,25 @@ summary.stats.gl.silico <- function(x) {
   n.monomorph <- count.monomorphs.silico(x)
   n.all_na <- count.all_na(x)
   
+  sample.cr     <- callrate.sample.gl(x) %>% pull(callrate.sample)
+  sample.cr.avg <- sample.cr %>% mean(na.rm = TRUE)
+  sample.cr.sd  <- sample.cr %>% sd(na.rm = TRUE)
+  
+  locus.cr      <- callrate.loci.gl(x) %>% pull(callrate.loci)
+  locus.cr.avg  <- locus.cr %>% mean(na.rm = TRUE)
+  locus.cr.sd   <- locus.cr %>% sd(na.rm = TRUE)
+  
+  
   df <- tibble(n.samples = n.samples, 
                n.populations = n.populations, 
                n.mks = n.mks, 
                n.monomorphic.loci = n.monomorph, 
                n.polymorphic = n.mks - n.monomorph, 
-               n.loci.all.NA = n.all_na)
+               n.loci.all.NA = n.all_na, 
+               sample.callrate.mean = sample.cr.avg,
+               sample.callrate.sd   = sample.cr.sd,
+               locus.callrate.mean = locus.cr.avg,
+               locus.callrate.sd   = locus.cr.sd)
   return(df)
 }
 
