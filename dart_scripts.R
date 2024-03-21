@@ -1,3 +1,41 @@
+# Read a list of dart reports and join them into a single data.table
+## path_reports (STRING): directory where all files are stored
+## marker (STRING): type of report being read. The options are
+##   'snp_onerow'
+##   'snp_tworow'
+##   'silico'
+## recursive: should directories within path_reports be searched as well? 
+join.dart.raw <- function(path_reports, marker, recursive = FALSE){
+  require(purrr)
+  require(data.table)
+  
+  if (!marker %in% c('snp_onerow', 'snp_tworow', 'silico')) stop("Marker can only be one of 'snp_onerow', 'snp_tworow', 'silico'")
+  
+  if (marker == 'snp_onerow'){
+    pattern <- '[Mm]apping'
+  } else if(marker == 'snp_tworow'){
+    pattern <- 'SNP_[0-9]'  
+  } else {
+    pattern <- '[Ss]ilicoDArT'
+  }
+    
+  list_files <- list.files(pattern = pattern, path = path_reports, full.names = TRUE, recursive = recursive)
+  
+  df1 <- fread(file = list_files[[1]], header = FALSE)
+  nremove <- sum(df1[, 1] == "*") + 1
+  list_files2 <- list_files[-1]
+  dfs <- map(list_files2, ~fread(file = .x, header = FALSE, skip = nremove))
+  
+  list_all <- vector(mode = 'list', length = length(list_files))
+  list_all[[1]] <- df1
+  list_all[2:length(list_all)] <- dfs
+  
+  df_all <- rbindlist(list_all, use.names = FALSE, idcol = NULL)
+  
+  return(df_all)
+  
+} #end joind.dart.raw
+
 
 
 # calculate the call rate of a genlight/DartR object and return it as a table with alleleID and call rate
