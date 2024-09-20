@@ -1,24 +1,28 @@
 # Read a list of dart reports and join them into a single data.table
 ## path_reports (STRING): directory where all files are stored
 ## marker (STRING): type of report being read. The options are
-##   'snp_onerow'
-##   'snp_tworow'
-##   'silico'
+##   'snp_onerow' searches for the following pattern in the filename: "[Mm]apping"
+##   'snp_tworow' searches for the following pattern in the filename: "SNP_[0-9]"
+##   'silico'     searches for the following pattern in the filename: "[Ss]ilicoDArT"
 ## recursive: should directories within path_reports be searched as well? 
-join.dart.raw <- function(path_reports, marker, recursive = FALSE){
+## pattern (STRING): use if the files have a pattern besides the ones metiones above
+join.dart.raw <- function(path_reports, marker, pattern = NULL, recursive = FALSE){
   require(purrr)
   require(data.table)
   
-  if (!marker %in% c('snp_onerow', 'snp_tworow', 'silico')) stop("Marker can only be one of 'snp_onerow', 'snp_tworow', 'silico'")
-  
-  if (marker == 'snp_onerow'){
-    pattern <- '[Mm]apping'
-  } else if(marker == 'snp_tworow'){
-    pattern <- 'SNP_[0-9]'  
-  } else {
-    pattern <- '[Ss]ilicoDArT'
-  }
+  if (!is.null(pattern)) {
+    if (!marker %in% c('snp_onerow', 'snp_tworow', 'silico')) stop("Marker can only be one of 'snp_onerow', 'snp_tworow', 'silico'")
     
+    if (marker == 'snp_onerow'){
+      pattern <- '[Mm]apping'
+    } else if(marker == 'snp_tworow'){
+      pattern <- 'SNP_[0-9]'  
+    } else {
+      pattern <- '[Ss]ilicoDArT'
+    }
+    
+  }
+  
   list_files <- list.files(pattern = pattern, path = path_reports, full.names = TRUE, recursive = recursive)
   
   df1 <- fread(file = list_files[[1]], header = FALSE)
