@@ -6,11 +6,11 @@
 ##   'silico'     searches for the following pattern in the filename: "[Ss]ilicoDArT"
 ## recursive: should directories within path_reports be searched as well? 
 ## pattern (STRING): use if the files have a pattern besides the ones metiones above
-join.dart.raw <- function(path_reports, marker, pattern = NULL, recursive = FALSE){
+join.dart.raw <- function(path_reports, marker = NULL, pattern = NULL, recursive = FALSE){
   require(purrr)
   require(data.table)
   
-  if (!is.null(pattern)) {
+  if (is.null(pattern)) {
     if (!marker %in% c('snp_onerow', 'snp_tworow', 'silico')) stop("Marker can only be one of 'snp_onerow', 'snp_tworow', 'silico'")
     
     if (marker == 'snp_onerow'){
