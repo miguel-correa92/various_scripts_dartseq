@@ -706,5 +706,38 @@ calc.mac.gl.silico <- function(x) {
 
 
 
+# convert genlight data to the popclust format
+genlight2popclust <- function(x, out.name){
+  # x <- snp.data.100
+  
+  
+  genotype <- as.matrix(x)
+  genotype[is.na(genotype)] <- 3   
+  
+  # write popClust
+  
+  require(data.table)
+  require(readr)
+  require(tibble)
+  # Transponer la matriz de datos
+  
+  t.genotype <- transpose(as.data.table(genotype))
+  # t.genotype <- transpose(as.data.table(genotype, keep.rownames = 'sample'), make.names = 'sample' )
+  
+  sample.names <- colnames(t.genotype) %>% t() %>% as.data.frame()
+  
+  out.name <- paste0(out.name, '.dat')
+  write_delim(sample.names, file = out.name, col_names =  FALSE, delim = ' ', eol = '\n')
+   
+  # fwrite(t.genotype, file = paste0(out.name, '.geno'), quote = FALSE, row.names = FALSE, col.names = FALSE, sep = '')
+  write_delim(t.genotype, file = out.name, quote = 'none', col_names = FALSE, delim = '', eol = '\n', append = TRUE)
+  
+  # all(indNames(x) == colnames(t.genotype))
+  
+  return(NULL)
+  
+}
+
+
 
           
