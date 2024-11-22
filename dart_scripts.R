@@ -739,5 +739,35 @@ genlight2popclust <- function(x, out.name){
 }
 
 
+read.popclust.admixture <- function(x) {
+  x <- readLines(x)
+
+  colnames.df <- which(str_detect(x, "^Admixture analysis$")) + 3
+  start <-which(str_detect(x, "^Admixture analysis$")) + 4
+  end   <- which(str_detect(x, "^Pairwise co-assignment probability from admixture analysis")) -4
+  
+  
+  colnames1 <- x[colnames.df] %>% str_remove(' : Inferred ancestry in clusters') %>% str_split(' ') %>% unlist()
+  
+  colnames2 <- colnames1[-length(colnames1)]
+  
+  admix.colnames  <- colnames1[length(colnames1)] %>% str_split('~') %>% unlist() %>% as.numeric()
+  admix.colnames2 <- admix.colnames[1]:admix.colnames[2] %>% str_c('X', .)
+  
+  colnames.all <- c(colnames2, admix.colnames2)
+  
+  admmix.table <- x[start:end]
+  
+  final.df <- admmix.table %>% 
+    str_remove(':') %>% 
+    stringr::str_squish() %>% 
+    tibble(all =.) %>% 
+    separate_wider_delim(cols = all, delim = ' ', names = colnames.all)
+    
+  final.df <- suppressMessages(type_convert(final.df))
+
+  return(final.df)
+}
+
 
           
