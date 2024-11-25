@@ -769,5 +769,12 @@ read.popclust.admixture <- function(x) {
   return(final.df)
 }
 
-
+# Convertir genlight a formato array de LinkImpute para imputar los datos
+gl2array <- function(gl, out.name) {
+  require(data.table)
+  
+  x <- as.matrix(gl)
+  
+  fwrite(x = x, file = out.name, sep = ' ', quote = FALSE, col.names = FALSE, na = '-1')   
+}
           
