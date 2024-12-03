@@ -778,3 +778,52 @@ gl2array <- function(gl, out.name) {
   fwrite(x = x, file = out.name, sep = ' ', quote = FALSE, col.names = FALSE, na = '-1')   
 }
           
+
+# read multiple files from BLINK results
+
+read.blink.files <- function(blink.dir, l.traits) {
+  
+  l.t2 <- l.traits %>% str_c(collapse = '|')
+  
+  reg.pat <- str_c('GAPIT.Association.GWAS_Results.BLINK.', '(', l.t2, ')\\.')
+  
+  list.blink.files <- list.files(blink.dir, pattern = reg.pat, full.names = TRUE)
+  
+  ## leer los archivos y ajustar los P.valores
+  ## los resultados ya vienen ajustados por fdr, falta agregar bonferroni
+  
+  variables <- str_extract(list.blink.files, '(?<=BLINK\\.).+(?=\\.csv)') %>% str_remove('.csv')
+  
+  names(list.blink.files) <- variables
+  # list.blink.files %>% enframe() %>% view
+  
+  pvalues.blink <- vector(mode = 'list', length = 9)
+  names(pvalues.blink) <- variables
+  
+  
+  for (i in variables) {
+    print(i)
+    # leer la tabla
+    df.blink <- read_csv(list.blink.files[i], show_col_types = FALSE)
+    
+    # agregar p.valores corregidos por bonferroni
+    df.blink <- df.blink %>% mutate(bonferroni.adjusted.p = p.adjust(P.value, method = 'bonferroni'))
+    
+    #guardar tabla en lista
+    pvalues.blink[[i]] <- df.blink
+    
+  }
+  
+  
+  
+  all.samples.blink <- bind_rows(pvalues.blink, .id = 'variable') %>% 
+    # mutate(Chr = as.numeric(Chr)) %>% 
+    select(variable, AlleleID = SNP, Chr, Pos, MAF, p.value = P.value, FDR.adjusted.p = `H&B.P.Value`,
+           bonferroni.adjusted.p)
+
+  return(all.samples.blink)
+
+}
+
+
+          
