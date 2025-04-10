@@ -40,7 +40,7 @@ dart.extract.header <- function(path.report, type = 'DART', make.names.unique = 
                    'row_pos',
                    'col_pos',
                    'sample_comment',
-                   'genotype_name')
+                   'id')
     
   }
   
@@ -51,7 +51,7 @@ dart.extract.header <- function(path.report, type = 'DART', make.names.unique = 
                    'client_plate_barcode', 
                    'unknown_header_column', 
                    'sample.name', 
-                   'dartplate_pos')
+                   'id')
     
   }
   
@@ -70,12 +70,12 @@ dart.extract.header <- function(path.report, type = 'DART', make.names.unique = 
     
     if (type == 'DART'){
       dat2 <- dat2 %>% 
-        mutate(unique.name = str_c(order_number, client_plate_barcode, str_c(row_pos, col_pos, sep = ''), genotype_name, sep = '_'))
+        mutate(unique.name = str_c(order_number, client_plate_barcode, str_c(row_pos, col_pos, sep = ''), id, sep = '_'))
     }
     
     if (type == 'SAGA'){
       dat2 <- dat2 %>% 
-        mutate(unique.name = str_c(client_plate_barcode, plate_pos, genotype_name, sep = '_')) 
+        mutate(unique.name = str_c(client_plate_barcode, plate_pos, id, sep = '_')) 
     }
     
     
