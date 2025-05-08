@@ -112,28 +112,37 @@ consolidate.SEQ <- function(count.file, names.row = 4) {
   counts <- fread(file = count.file, header = TRUE, skip = nremove)
   
   # manener unicamente columnas de muestras y de nombre de alelo
-  counts2 <- counts %>% 
+  counts <- counts %>% 
     lazy_dt() %>% 
     # select(AlleleID, all_of(c(chr.col, pos.col)), matches(regex.samples)) %>%
     select(ID = AlleleID, all_of(new.names$V2)) 
   
-  # renombrar columnas
+  rename.samples <- new.names %>% group_by(V1) %>% filter(n()==1)
+  rename.samples2 <- rename.samples$V2
+  names(rename.samples2) <- rename.samples$V1
   
-  # x.names <- colnames(counts2) %>% unlist(use.names = FALSE) %>% enframe() %>% count(value)
   
-  # 1. Consolidar replicas tecnicas ----------------------------------------------
+  rep.samples    <- new.names %>% group_by(V1) %>% filter(n()>1)
   
-  df.final <- counts2 %>% 
+  counts.rep <- counts %>% 
+    select(ID, all_of(rep.samples$V2)) %>% 
     pivot_longer(cols = -ID, names_to = 'V2', values_to = 'reads') %>% 
-    left_join(new.names, by = 'V2') %>% 
+    left_join(rep.samples, by = 'V2') %>% 
     select(-V2) %>% 
     group_by(V1, ID) %>% 
     summarise(reads = sum(reads), .groups = 'drop') %>% 
     pivot_wider(names_from = V1, values_from = reads) %>% 
     as.data.table()
+  
+  counts2 <- counts %>% 
+    select(-all_of(rep.samples$V2)) %>% 
+    left_join(counts.rep, by = c('ID')) %>% 
+    rename(any_of(rename.samples2)) %>% 
+    as.data.table()
+  
     
   
-  return(df.final)
+  return(counts2)
 
 }
 
