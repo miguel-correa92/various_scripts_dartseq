@@ -1,9 +1,5 @@
 # Turn dartseq report into vcf with per-allele depth included
-
-
-
-setwd('~/bean_collection/DCob20-5617/OrderAppendix_1_250kcounts_DCob20-5617/')
-
+# Pending: formatting of header
 require(data.table)
 require(dtplyr)
 
