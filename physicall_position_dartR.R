@@ -183,3 +183,112 @@ query2ref <- function(cigar, flags, query_len, ref_start, target_query_pos){
   }
 }
 
+gl.get_physical_position.df <- function (df, ref_genome, minimap_bin, samtools_bin, number_of_threads = 20) {
+  # VALIDATIONS
+  if (!file.exists(ref_genome)){
+    cli::cli_abort("`ref_genome` file not found in {ref_genome}")
+  }
+  
+  if (!file.exists(minimap_bin)){
+    cli::cli_abort("`minimap_bin` file not found in {minimap_bin}")
+  }
+  
+  if (!file.exists(samtools_bin)){
+    cli::cli_abort("`samtools_bin` file not found in {samtools_bin}")
+  }
+  if (!rlang::is_integerish(number_of_threads)){
+    cli::cli_abort("`number_of_threads` must be an integer not {number_of_threads}")
+  }
+  
+  
+  
+  # temp <- fread("D:/OneDrive - CGIAR/Documents/bean_collection/FFAR_cimmyt.25.mayo/recalling-ciat-2025-compressed/SEQ_SNPs_Extract_Meta.csv.gz")
+  # temp <- fread("/data/Genomic_data_bank/Bean/dartseq/report/SAGA_coanalysis_vulgaris/recalling-ciat-2025-compressed/SEQ_SNPs_Extract_Meta.csv.gz")
+  # df <- temp %>% select(AlleleID, AlleleSequence, SnpPosition) %>% as.data.frame()
+  
+  tag_cols <- c('TrimmedSequence', 'AlleleSequence')
+  
+  if (sum(tag_cols %in% colnames(df)) == 0) {
+    cli::cli_abort("Fatal Error: TrimmedSequence or AlleleSequence column is required!")
+  } else {
+    tag_seq_column <- ifelse(tag_cols[1] %in% colnames(df), tag_cols[1], tag_cols[2])
+    # Write tags into a fasta format
+    
+    seq_id <- paste0(">",c(df$AlleleID))
+    nuc_seq  <- df[, tag_seq_column]
+    
+    fasta.input <- c(rbind(seq_id, as.character(nuc_seq)))
+    tmp_path  <- paste0(tempdir(), "/fasta.input")
+    
+    write.table(fasta.input, file = tmp_path, 
+                quote = FALSE, row.names = FALSE, col.names = FALSE)
+    
+    cli::cli_inform("`tags_fasta` saved in {tmp_path}")
+  }
+  
+  
+  
+  
+  # 
+  # ref_genome <- "/data/mcorrea/bean/reference_genome/ref_gen_chl_mit/andean_genome_chloroplast_mitochondria.fasta"
+  # minimap_bin  <- '/data/mcorrea/minimap2/minimap2'
+  # samtools_bin  <- "/data/mcorrea/samtools/bin/samtools"
+  # number_of_threads <- 20
+  # 
+  # 
+  # CHECK if unix
+  if (grepl("unix", .Platform$OS.type, ignore.case = TRUE)) {
+    # MINIMAP2 APPROACH
+    # Check if blastn exists
+    if(file.exists(minimap_bin)){
+      cli::cli_inform("Checking works minimap2 located in: {minimap_bin}")
+      system(glue::glue("{minimap_bin} --version", timeout = 2))                      
+      tmp_path_minimap_out  <- paste0(tempdir(), "/tags.sorted.bam")
+      cli::cli_inform('Bam output stored in {tmp_path_minimap_out}')
+      
+      minimap_cmd <- glue::glue("{minimap_bin} -t {number_of_threads} -ax sr",
+                                "{ref_genome} {tmp_path}",
+                                "| {samtools_bin} sort -o {tmp_path_minimap_out}",
+                                .sep = ' ')
+      # Execute minimap2 job
+      system(minimap_cmd)
+      # ADD the MD field
+      
+      tmp_path_minimap_md_out  <- paste0(tempdir(), "/tags.sorted.md.bam")
+      minimap_cmd <- glue::glue("{samtools_bin} calmd -b {tmp_path_minimap_out} {ref_genome} > {tmp_path_minimap_md_out}")
+      system(minimap_cmd)
+      
+      
+      # Filter the resulting bam
+      tmp_path_filtbam_out  <- paste0(tempdir(), "/tags.sorted.md.filtered.bam")
+      samtools_cmd  <- glue::glue("{samtools_bin} view -b -q 20 -F 0x100 -o {tmp_path_filtbam_out} {tmp_path_minimap_md_out}")
+      cli::cli_inform('Filtering unique matchs of BAM stored in {tmp_path_filtbam_out}')
+      system(samtools_cmd)
+      # Get the interesing fields of filtered BAM
+      tmp_path_table_out  <- paste0(tempdir(), "/tags.sorted.md.filtered.txt")
+      samtools_cmd  <- glue::glue("{samtools_bin} view {tmp_path_filtbam_out} | cut -f1-6,22 > {tmp_path_table_out}")
+      cli::cli_inform('Generating input table in {tmp_path_table_out}')
+      system(samtools_cmd)
+      tab_colnames <- c('AlleleID', 'flags', 'RNAME', 'POS', 'MAPQ', 'CIGAR', 'MD')
+      mapping_tab <- read.table(tmp_path_table_out, sep = '\t', header = F)
+      colnames(mapping_tab) <- tab_colnames
+      
+      # Merge locmetrics with mapping_tab
+      join_tab <- base::merge(df, mapping_tab, by = 'AlleleID', all.x = T) %>%
+        mutate(allele_test = stringr::str_sub(!!sym(tag_seq_column), SnpPosition+1, SnpPosition+1),
+               query_len = stringr::str_count(!!sym(tag_seq_column))
+        )
+      
+      
+      pred_positions <- purrr::pmap(list(join_tab$CIGAR,join_tab$flags, join_tab$query_len, join_tab$POS, join_tab$SnpPosition), query2ref)
+      vec_positions <- purrr::map_vec(pred_positions, ~ifelse(is.null(.x), NA, .x))
+      join_tab$snp_position  <-  vec_positions
+      
+      return(join_tab)
+    } else {
+      cli::cli_abort("minimap2 executable not found...")
+    }
+  } else {
+    cli::cli_abort("{.Platform$OS.type} not supported only unix!")
+  }
+}
