@@ -45,18 +45,12 @@ join.dart.raw <- function(path_reports, marker = NULL, pattern = NULL, recursive
 # calculate the call rate of a genlight/DartR object and return it as a table with alleleID and call rate
 
 callrate.loci.gl <- function(gl){
-  require(dplyr)
-  require(magrittr)
-  require(tibble)
-  cr <- gl %>%
-    as.matrix %>% 
-    is.na(.) %>% 
-    not() %>% 
-    colMeans() %>%  
-    as_tibble(rownames = 'LocusID', .name_repair = 'unique') %>% 
-    rename(callrate.loci = value)
+  gl_matrix <- as.matrix(gl)
   
-  return(cr)
+  tibble(
+    LocusID = colnames(gl_matrix),
+    callrate.loci = colMeans(!is.na(gl_matrix))
+  )
 }
 
 # calculate the call rate of a genlight/DartR object and return it as a table with:
@@ -65,29 +59,21 @@ callrate.loci.gl <- function(gl){
 ## number of markers called 
 ## total number of markers across the dataset
 
-callrate.sample.gl <- function(gl){
+function(gl){
   require(dplyr)
   require(magrittr)
   require(tibble)
-  cr <- gl %>%
-    as.matrix %>% 
-    is.na(.) %>% 
-    not() %>% 
-    rowMeans() %>%  
-    as_tibble(rownames = 'sample') %>% 
-    repair_names() %>% 
-    rename(callrate.sample = value)
   
-  n.markers <- gl %>%
-    as.matrix %>% 
-    is.na(.) %>% 
-    not() %>% 
-    rowSums() %>%  
-    as_tibble(rownames = 'sample', .name_repair = 'unique') %>% 
-    rename(n.called.markers = value)
+  # Convert once and compute both metrics together
+  gl_matrix <- as.matrix(gl)
+  not_na <- !is.na(gl_matrix)
   
-  df <- left_join(cr, n.markers, by = 'sample') %>% 
-    mutate(n.total.markers = nLoc(gl))
+  df <- tibble(
+    sample = rownames(gl_matrix),
+    callrate.sample = rowMeans(not_na),
+    n.called.markers = rowSums(not_na),
+    n.total.markers = nLoc(gl)
+  )
   
   return(df)
 }
