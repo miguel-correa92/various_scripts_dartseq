@@ -59,7 +59,7 @@ callrate.loci.gl <- function(gl){
 ## number of markers called 
 ## total number of markers across the dataset
 
-function(gl){
+callrate.sample.gl <- function(gl){
   require(dplyr)
   require(magrittr)
   require(tibble)
